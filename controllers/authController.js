@@ -68,80 +68,101 @@ exports.registerUser = async (req, res) => {
 
 //Login user
 exports.loginUser = async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-  const passwordValidation = validatePassword(password);
-  if (!passwordValidation) {
-    return res.status(400).json({ message: passwordValidation.message });
-  }
   try {
-    const emailLower = email.toLowerCase();
-    const user = await User.findOne({ email: emailLower });
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(400).json({ message: "Invalid credentials" });
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ success: false, message: "All fields are required" });
     }
+
+    const emailLower = email.toLowerCase();
+    const user = await User.findOne({ email: emailLower }).select("+password");
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
+    }
+
+    // Generate OTP
     const { otp, hashedOTP } = await generateOTP();
     user.otp = hashedOTP;
-    user.otpExpires = Date.now() + 5 * 60 * 1000; //validate otp for 5 minutes
+    user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 min
     await user.save();
+
+    // Send OTP via email
     await sendEmail(
       emailLower,
-      "Your OTP for Expense manager login",
-      `Your one-time password(OTP) is:${otp}\nIt is valid for 5 minutes.`
+      "Your OTP for Expense Manager Login",
+      `Your one-time password is: ${otp}\nIt is valid for 5 minutes.`
     );
+
     res.status(200).json({
       success: true,
-      id: user._id,
-      user,
-      message: "User login successfully",
+      message: "OTP sent to your email",
+      userId: user._id,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error login user",
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({ success: false, message: "Login failed", error: error.message });
   }
 };
 
 //verify OTP
 exports.verifyOTP = async (req, res) => {
-  const { email, otp } = req.body;
-  if (!email || !otp) {
-    return res.status(400).json({ message: "Email and OTP are required" });
-  }
-
   try {
-    const emailLower = email.toLowerCase();
-    const user = await User.findOne({ email: emailLower });
-    if (!user || user.otpExpires < Date.now()) {
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and OTP are required" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() }).select(
+      "+otp +otpExpires"
+    );
+
+    if (!user || !user.otp || user.otpExpires < Date.now()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired OTP" });
     }
 
     const isValidOTP = await bcrypt.compare(otp, user.otp);
     if (!isValidOTP) {
-      return res.status(400).json({ message: "Invalid OTP" });
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 
+    // Clear OTP
     user.otp = null;
     user.otpExpires = null;
     await user.save();
 
+    // Generate JWT
     const token = generateToken(user._id);
+
     res.status(200).json({
       success: true,
       message: "OTP verified successfully",
       token,
-      user,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        profileImageUrl: user.profileImageUrl,
+      },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "OTP verification failed",
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "OTP verification failed",
+        error: error.message,
+      });
   }
 };
 

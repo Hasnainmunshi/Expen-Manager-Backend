@@ -15,33 +15,49 @@ const generateToken = (id) => {
   });
 };
 
-//Register user
+// Register user
 exports.registerUser = async (req, res) => {
-  const { fullName, email, password } = req.body;
-  const imageUrl = req.file ? req.file.filename : null;
-  //validation check
-  if (!fullName || !email || !password) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-  const passwordValidation = validatePassword(password);
-  if (!passwordValidation) {
-    return res.status(400).json({ message: passwordValidation.message });
-  }
   try {
+    const { fullName, email, password } = req.body;
+    const profileImage = req.file ? req.file.filename : null;
+
+    // Validation
+    if (!fullName || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation) {
+      return res.status(400).json({
+        success: false,
+        message: passwordValidation.message,
+      });
+    }
+
     const emailLower = email.toLowerCase();
-    //check if email already exist
+
+    // Check if user exists
     const existingUser = await User.findOne({ email: emailLower });
     if (existingUser) {
-      return res.status(400).json({ message: "Email already in use" });
+      return res.status(400).json({
+        success: false,
+        message: "Email already in use",
+      });
     }
-    //create user
+
+    // Create user
     const user = await User.create({
       fullName,
       email: emailLower,
       password,
       role: "user",
-      profileImageUrl: imageUrl,
+      profileImageUrl: profileImage,
     });
+
+    // Create default settings
     const settings = await Setting.create({
       userId: user._id,
       theme: "light",
@@ -49,18 +65,26 @@ exports.registerUser = async (req, res) => {
       notification: true,
       currency: "USD",
     });
+
+    // Send response
     res.status(201).json({
       success: true,
-      id: user._id,
-      user,
+      message: "User created successfully",
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        profileImageUrl: user.profileImageUrl,
+      },
       settings,
       token: generateToken(user._id),
-      message: "User create successfully",
     });
   } catch (error) {
+    console.error("Register error:", error);
     res.status(500).json({
       success: false,
-      message: "Error registering user ",
+      message: "Error registering user",
       error: error.message,
     });
   }
@@ -156,13 +180,11 @@ exports.verifyOTP = async (req, res) => {
       },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "OTP verification failed",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "OTP verification failed",
+      error: error.message,
+    });
   }
 };
 

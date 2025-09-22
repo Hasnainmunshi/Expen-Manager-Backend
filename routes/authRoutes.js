@@ -16,7 +16,7 @@ const role = require("../middleware/roleMeddileware");
 
 const router = express.Router();
 
-router.post("/register", upload.single("profileImageUrl"), registerUser);
+router.post("/register", upload.single("profileImage"), registerUser);
 router.post("/login", loginUser);
 router.post("/verify-otp", verifyOTP);
 router.get("/getUser", protect, getUserInfo);

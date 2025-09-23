@@ -124,8 +124,13 @@ exports.loginUser = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "OTP sent to your email",
-      userId: user._id,
+      message: "Login successful",
+      token: generateToken(user._id),
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+      },
     });
   } catch (error) {
     res

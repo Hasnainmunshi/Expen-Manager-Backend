@@ -2,14 +2,6 @@ const nodemailer = require("nodemailer");
 
 const sendEmail = async (to, subject, text) => {
   try {
-    // In dev, just log the OTP instead of sending
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        `\n📧 Dev Email to: ${to}\nSubject: ${subject}\nText: ${text}\n`
-      );
-      return true;
-    }
-
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com", // ✅ fixed
       port: 465,

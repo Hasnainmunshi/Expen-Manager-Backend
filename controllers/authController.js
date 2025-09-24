@@ -29,12 +29,9 @@ exports.registerUser = async (req, res) => {
       });
     }
 
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation) {
-      return res.status(400).json({
-        success: false,
-        message: passwordValidation.message,
-      });
+    const { isValid, message } = validatePassword(password);
+    if (!isValid) {
+      return res.status(400).json({ success: false, message });
     }
 
     const emailLower = email.toLowerCase();
@@ -125,7 +122,6 @@ exports.loginUser = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Login successful",
-      token: generateToken(user._id),
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -154,6 +150,11 @@ exports.verifyOTP = async (req, res) => {
     );
 
     if (!user || !user.otp || user.otpExpires < Date.now()) {
+      if (user) {
+        user.otp = null;
+        user.otpExpires = null;
+        await user.save();
+      }
       return res
         .status(400)
         .json({ success: false, message: "Invalid or expired OTP" });

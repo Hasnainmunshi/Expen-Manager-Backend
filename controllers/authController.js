@@ -1,8 +1,8 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const generateOTP = require("../utils/generateOTP");
+// const generateOTP = require("../utils/generateOTP");
 const { validatePassword } = require("../utils/validatePassword");
-const sendEmail = require("../utils/sendEmail");
+// const sendEmail = require("../utils/sendEmail");
 const bcrypt = require("bcrypt");
 const Setting = require("../models/Setting");
 const mongoose = require("mongoose");
@@ -106,18 +106,18 @@ exports.loginUser = async (req, res) => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    // Generate OTP
-    const { otp, hashedOTP } = await generateOTP();
-    user.otp = hashedOTP;
-    user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 min
+    // // Generate OTP
+    // const { otp, hashedOTP } = await generateOTP();
+    // user.otp = hashedOTP;
+    // user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 min
     await user.save();
 
-    // Send OTP via email
-    await sendEmail(
-      emailLower,
-      "Your OTP for Expense Manager Login",
-      `Your one-time password is: ${otp}\nIt is valid for 5 minutes.`
-    );
+    // // Send OTP via email
+    // await sendEmail(
+    //   emailLower,
+    //   "Your OTP for Expense Manager Login",
+    //   `Your one-time password is: ${otp}\nIt is valid for 5 minutes.`
+    // );
 
     res.status(200).json({
       success: true,
@@ -135,64 +135,64 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-//verify OTP
-exports.verifyOTP = async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-    if (!email || !otp) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email and OTP are required" });
-    }
+// //verify OTP
+// exports.verifyOTP = async (req, res) => {
+//   try {
+//     const { email, otp } = req.body;
+//     if (!email || !otp) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Email and OTP are required" });
+//     }
 
-    const user = await User.findOne({ email: email.toLowerCase() }).select(
-      "+otp +otpExpires"
-    );
+//     const user = await User.findOne({ email: email.toLowerCase() }).select(
+//       "+otp +otpExpires"
+//     );
 
-    if (!user || !user.otp || user.otpExpires < Date.now()) {
-      if (user) {
-        user.otp = null;
-        user.otpExpires = null;
-        await user.save();
-      }
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid or expired OTP" });
-    }
+//     if (!user || !user.otp || user.otpExpires < Date.now()) {
+//       if (user) {
+//         user.otp = null;
+//         user.otpExpires = null;
+//         await user.save();
+//       }
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Invalid or expired OTP" });
+//     }
 
-    const isValidOTP = await bcrypt.compare(otp, user.otp);
-    if (!isValidOTP) {
-      return res.status(400).json({ success: false, message: "Invalid OTP" });
-    }
+//     const isValidOTP = await bcrypt.compare(otp, user.otp);
+//     if (!isValidOTP) {
+//       return res.status(400).json({ success: false, message: "Invalid OTP" });
+//     }
 
-    // Clear OTP
-    user.otp = null;
-    user.otpExpires = null;
-    await user.save();
+//     // Clear OTP
+//     user.otp = null;
+//     user.otpExpires = null;
+//     await user.save();
 
-    // Generate JWT
-    const token = generateToken(user._id);
+//     // Generate JWT
+//     const token = generateToken(user._id);
 
-    res.status(200).json({
-      success: true,
-      message: "OTP verified successfully",
-      token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        profileImageUrl: user.profileImageUrl,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "OTP verification failed",
-      error: error.message,
-    });
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       message: "OTP verified successfully",
+//       token,
+//       user: {
+//         id: user._id,
+//         fullName: user.fullName,
+//         email: user.email,
+//         role: user.role,
+//         profileImageUrl: user.profileImageUrl,
+//       },
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: "OTP verification failed",
+//       error: error.message,
+//     });
+//   }
+// };
 
 // user info
 exports.getUserInfo = async (req, res) => {

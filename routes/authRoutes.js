@@ -18,7 +18,6 @@ const router = express.Router();
 
 router.post("/register", upload.single("profileImage"), registerUser);
 router.post("/login", loginUser);
-// router.post("/verify-otp", verifyOTP);
 router.get("/getUser", protect, getUserInfo);
 router.get("/getUserDashboard", protect, getUserDashboard);
 router.put(

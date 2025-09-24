@@ -105,7 +105,8 @@ exports.loginUser = async (req, res) => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    await user.save();
+    // generate token
+    const token = generateToken(user._id);
 
     res.status(200).json({
       success: true,
@@ -114,7 +115,10 @@ exports.loginUser = async (req, res) => {
         id: user._id,
         fullName: user.fullName,
         email: user.email,
+        role: user.role,
+        profileImageUrl: user.profileImageUrl,
       },
+      token, // ✅ include token in response
     });
   } catch (error) {
     res

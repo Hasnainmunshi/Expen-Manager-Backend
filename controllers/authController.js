@@ -131,7 +131,10 @@ exports.loginUser = async (req, res) => {
 exports.getUserInfo = async (req, res) => {
   const id = req.user.id;
   try {
-    const user = await User.findById(id).select("-password -otp -otpExpires");
+    const user = await User.findById(id).select("-password");
+    if (user.profileImageUrl) {
+      user.profileImageUrl = `${process.env.BASE_URL}/uploads/${user.profileImageUrl}`;
+    }
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
